@@ -19,12 +19,12 @@
             {% endif %}
           </div>
           <div class="card-body">
-            {% if is_edit %}  
-              <form method="post" action="{% url 'posts:post_edit' post.id %}"> 
+            {% if is_edit %}
+              <form method="post" enctype="multipart/form-data" action="{% url 'posts:post_edit' post.id %}"> 
                 {{ text }} 
                 {{ group }}
             {% else %}
-              <form method="post" action="{% url 'posts:post_create' %}">
+              <form method="post" enctype="multipart/form-data" action="{% url 'posts:post_create' %}">
             {% endif %}
             {% csrf_token %}
             {{ form.as_p}}

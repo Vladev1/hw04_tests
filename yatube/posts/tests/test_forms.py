@@ -1,7 +1,12 @@
+import shutil
+import tempfile
+
 from ..models import Post, Group, User
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 User = get_user_model()
