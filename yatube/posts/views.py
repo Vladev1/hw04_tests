@@ -1,8 +1,9 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render, get_object_or_404
 from django.core.paginator import Paginator
+
 from .models import Post, Group, User
 from .forms import PostForm
-from django.contrib.auth.decorators import login_required
 
 QT_POST_PG = 10
 
@@ -44,17 +45,15 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
-    author = post.author
     context = {
-        'post': post,
-        'author': author
+        'post': post
     }
     return render(request, 'posts/post_detail.html', context)
 
 
 @login_required
 def post_create(request):
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None, files=request.FILES or None)
     username = request.user.username
     if not form.is_valid():
         return render(request, 'posts/create_post.html', {'form': form})
