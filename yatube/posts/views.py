@@ -1,9 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render, get_object_or_404
 from django.core.paginator import Paginator
+from django.views.decorators.cache import cache_page
 
 from .models import Post, Group, User
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 
 QT_POST_PG = 10
 
@@ -15,6 +16,7 @@ def paginator(request, queryset):
     return page_obj
 
 
+@cache_page(60 * 20)
 def index(request):
     post_list = Post.objects.all()
     context = {
@@ -45,8 +47,12 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
+    form = CommentForm()
+    comments = post.comments.all()
     context = {
-        'post': post
+        'post': post,
+        'form': form,
+        'comments': comments,
     }
     return render(request, 'posts/post_detail.html', context)
 
@@ -80,3 +86,15 @@ def post_edit(request, post_id):
         return redirect('posts:post_detail', post_id=post_id)
     context = {'form': form, 'post': post, 'is_edit': True}
     return render(request, 'posts/create_post.html', context)
+
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+    return redirect('posts:post_detail', post_id=post_id)

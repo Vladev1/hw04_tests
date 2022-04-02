@@ -18,7 +18,11 @@ class Group(models.Model):
 
 class Post(models.Model):
     text = models.TextField('Мысли великих')
-    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True,
+        db_index=True
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -44,3 +48,26 @@ class Post(models.Model):
 
     def __str__(self):
         return self.text[:TEXT_IN_FIELD]
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name='comments',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор поста'
+    )
+    text = models.TextField('Интересные заметки')
+    created = models.DateTimeField(
+        'Дата заметки',
+        auto_now_add=True,
+        db_index=True
+    )
+

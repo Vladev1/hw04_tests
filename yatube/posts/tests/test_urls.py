@@ -65,7 +65,6 @@ class PostsURLTests(TestCase):
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     # Проверяем редиректы приватных адресов гостевой учеткой
-
     def test_create_url_redirect_anonymous_on_auth_login(self):
         """Страница по адресу /create/ перенаправит анонимного
         пользователя на страницу логина.

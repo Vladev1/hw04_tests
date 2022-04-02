@@ -1,11 +1,15 @@
 import shutil
 import tempfile
 
+from http import HTTPStatus
+
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from ..models import Post, Group, User
+from ..models import Post, Group, User, Comment
+from .. forms import CommentForm
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -13,7 +17,7 @@ TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostsFormTest(TestCase):
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
@@ -26,6 +30,12 @@ class PostsFormTest(TestCase):
             pub_date='Дата',
             author=User.objects.create_user(username='test_name_2'),
             group=cls.group,
+        )
+        cls.comment = Comment.objects.create(
+            text="Текст",
+            created='Тестовая дата',
+            author=cls.user,
+            post=cls.post,
         )
         cls.urls = [
             '/profile/test_name_1/',
@@ -40,6 +50,8 @@ class PostsFormTest(TestCase):
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
+        # Создаем неавторизованный клиент
+        self.guest_client = Client()
         # Создаем авторизованый клиент
         self.user1 = User.objects.create_user(username='test_name_1')
         self.authorized_client = Client()
@@ -65,7 +77,7 @@ class PostsFormTest(TestCase):
             'posts:profile', kwargs={'username': 'test_name_1'}
         ))
         self.assertNotEqual(Post.objects.count(), posts_count)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_form_edit_post(self):
         """Форма edit правит пост и перенаправляет."""
@@ -90,3 +102,68 @@ class PostsFormTest(TestCase):
                 text=self.post.text,
             ).exists()
         )
+
+    def test_comment_appears_in_post(self):
+        """Проверка добавления комментария авторизованным пользователем."""
+        form = CommentForm(data={
+            'text': 'some comment',
+        })
+        self.assertTrue(form.is_valid())
+        # Отправляем POST-запрос
+        response = self.authorized_client.post(
+            reverse('posts:add_comment', args=[self.post.pk]),
+            data=form.data,
+            follow=True
+        )
+        # Проверяем наличие комментариев
+        self.assertEqual(self.post.comments.last().text, form.data['text'])
+        # Проверяем, сработал ли редирект
+        self.assertRedirects(response, reverse(
+            'posts:post_detail',
+            args=[self.post.pk])
+        )
+
+    def test_comment_not_appears_in_post(self):
+        """Проверка добавления комментария неавторизованным пользователем."""
+        form = CommentForm(data={
+            'text': 'Текст',
+        })
+        self.assertTrue(form.is_valid())
+        # Отправляем POST-запрос
+        response = self.guest_client.post(
+            reverse('posts:add_comment', args=[self.post.pk]),
+            data=form.data,
+            follow=True
+        )
+        # Проверяем, сработал ли редирект на логин
+        self.assertRedirects(response, reverse(
+            'users:login') + '?next=/posts/1/comment/'
+        )
+
+    def test_create_image_post(self):
+        """Проверка загрузки картинок во все необходимые страницы."""
+        posts_count = Post.objects.count()
+        small_gif = (            
+             b'\x47\x49\x46\x38\x39\x61\x02\x00'
+             b'\x01\x00\x80\x00\x00\x00\x00\x00'
+             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+             b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
+        form_data = {
+            'text': 'Текст',
+            'group': self.group.pk,
+            'image': uploaded,
+        }
+        response = self.authorized_client_author.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True
+        )
+        self.assertEqual(Post.objects.count(), posts_count+1)

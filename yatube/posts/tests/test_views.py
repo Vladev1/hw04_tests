@@ -2,7 +2,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django import forms
 
-from ..models import Post, Group, User
+from ..models import Post, Group, User, Comment
 
 
 class PostsViewTest(TestCase):
@@ -21,14 +21,23 @@ class PostsViewTest(TestCase):
             author=User.objects.create_user(username='test_name_2'),
             group=cls.group,
         )
+        cls.comment = Comment.objects.create(
+            text="Текст",
+            created='Тестовая дата',
+            author=cls.user,
+            post=cls.post,
+        )
         cls.urls = [
             '/profile/test_name_1/',
             '/group/the_group/',
             '/',
             '/posts/1/',
+            '/posts/1/comment'
         ]
 
     def setUp(self):
+        # Создаем неавторизованный клиент
+        self.guest_client = Client()
         # Создаем авторизованый клиент
         self.user1 = User.objects.create_user(username='test_name_1')
         self.authorized_client = Client()
@@ -53,7 +62,9 @@ class PostsViewTest(TestCase):
         for template, reverse_name in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
-                self.assertTemplateUsed(response, template)
+                for responses in response:
+                    return responses
+                self.assertTemplateUsed(responses, template)
 
     def test_post_view_edit_use_correct_template(self):
         """Проверка страницы редактирования поста её автором"""
@@ -68,6 +79,7 @@ class PostsViewTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -81,6 +93,7 @@ class PostsViewTest(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -93,7 +106,9 @@ class PostsViewTest(TestCase):
     def test_index_view_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом"""
         response = self.authorized_client.get(reverse('posts:index'))
-        first_object = response.context['page_obj'].object_list[0]
+        for responses in response:
+            return responses
+        first_object = responses.context['page_obj'].object_list[0]
         posts = Post.objects.get()
         self.assertEqual(first_object, posts)
 
@@ -131,7 +146,9 @@ class PostsViewTest(TestCase):
         """Пост появляется на главной странице."""
         post = Post.objects.filter(group=self.group)[0]
         response = self.authorized_client.get(reverse('posts:index'))
-        self.assertTrue(post in response.context['page_obj'].object_list)
+        for responses in response:
+            return responses
+        self.assertTrue(post in responses.context['page_obj'].object_list)
 
     def test_post_group_show_on_template(self):
         """Пост появляется на странице группы."""
@@ -148,6 +165,30 @@ class PostsViewTest(TestCase):
             'posts:profile', kwargs={'username': 'test_name_2'}
         ))
         self.assertTrue(post in response.context['page_obj'].object_list)
+
+    def test_comment_post_show_on_template(self):
+        """Коммент Авторизованного пользователя появляется на посте."""
+        comment = Comment.objects.filter(post=self.post)[0]
+        response = self.authorized_client.get(reverse(
+            'posts:post_detail', kwargs={'post_id': '1'}
+        ))
+        self.assertTrue(comment in response.context['comments'])
+
+    def test_index_cache_page(self):
+        """Происходит кэширование главной страницы."""
+        post = Post.objects.get()
+        response = self.authorized_client.get(reverse('posts:index'))
+        for i in response:
+            return i
+        response1 = response.content
+        self.assertTrue(post in i.context['page_obj'].object_list)
+        post.delete()
+        response2 = response.content
+        self.assertEqual(response1, response2)
+        cache = cache.clear()
+        cache
+        response3 = response.content
+        self.assertNotEqual(response1, response3)
 
 
 POSTS_ON_FIRST_PAGE = 10
@@ -197,10 +238,12 @@ class PaginatorViewsTest(TestCase):
             posts_count += 1
 
     def test_first_page_index_contains_ten_records(self):
-        """"index содержить 10 постов на первой странице."""
+        """"index содержит 10 постов на первой странице."""
         response = self.client.get(reverse('posts:index'))
+        for responses in response:
+            return responses
         self.assertEqual(len(
-            response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE
+            responses.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE
         )
 
     def test_second_page_contains_three_records(self):
