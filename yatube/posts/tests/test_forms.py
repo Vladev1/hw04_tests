@@ -4,7 +4,6 @@ import tempfile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 from ..models import Post, Group, User
 
@@ -91,31 +90,3 @@ class PostsFormTest(TestCase):
                 text=self.post.text,
             ).exists()
         )
-
-    def test_create_image_post(self):
-        """Проверка загрузки картинок во все необходимые страницы."""
-        posts_count = Post.objects.count()
-        small_gif = (            
-             b'\x47\x49\x46\x38\x39\x61\x02\x00'
-             b'\x01\x00\x80\x00\x00\x00\x00\x00'
-             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-             b'\x0A\x00\x3B'
-        )
-        uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=small_gif,
-            content_type='image/gif'
-        )
-        form_data = {
-            'text': 'Текст',
-            'group': self.group.pk,
-            'image': uploaded,
-        }
-        response = self.authorized_client_author.post(
-            reverse('posts:post_create'),
-            data=form_data,
-            follow=True
-        )
-        self.assertEqual(Post.objects.count(), posts_count+1)

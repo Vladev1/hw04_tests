@@ -5,7 +5,6 @@ from django import forms
 from ..models import Post, Group, User
 
 
-
 class PostsViewTest(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -59,7 +58,7 @@ class PostsViewTest(TestCase):
     def test_post_view_edit_use_correct_template(self):
         """Проверка страницы редактирования поста её автором"""
         response = self.authorized_client_author.get(
-            reverse('posts:post_edit', kwargs={'post_id': '1'}), 
+            reverse('posts:post_edit', kwargs={'post_id': '1'}),
         )
         self.assertTemplateUsed(response, 'posts/create_post.html')
 
@@ -152,8 +151,10 @@ class PostsViewTest(TestCase):
         ))
         self.assertTrue(post in response.context['page_obj'].object_list)
 
+
 POSTS_ON_FIRST_PAGE = 10
 POSTS_ON_SECOND_PAGE = 3
+
 
 class PaginatorViewsTest(TestCase):
     @classmethod
@@ -191,29 +192,35 @@ class PaginatorViewsTest(TestCase):
         posts_count = Post.objects.count()
         while posts_count < 13:
             self.post1 = Post.objects.create(
-            text="Текст",
-            author=User.objects.get(username='test_name_2'),
-            group=Group.objects.get(slug='the_group'),
+                text="Текст",
+                author=User.objects.get(username='test_name_2'),
+                group=Group.objects.get(slug='the_group'),
             )
             posts_count += 1
 
     def test_first_page_index_contains_ten_records(self):
         """"index содержить 10 постов на первой странице."""
         response = self.client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE
+        )
 
     def test_second_page_contains_three_records(self):
         """index содержит 3 поста на второй странице."""
         # Проверка: на второй странице должно быть три поста.
         response = self.client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE
+        )
 
     def test_first_page_group_list_contains_ten_records(self):
         """"group_list содержить 10 постов на первой странице"""
         response = self.client.get(reverse(
             'posts:group_list', kwargs={'slug': 'the_group'})
         )
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE
+        )
 
     def test_second_page_contains_three_records(self):
         """group_list содержит 3 поста на второй странице."""
@@ -221,18 +228,24 @@ class PaginatorViewsTest(TestCase):
         response = self.client.get(reverse(
             'posts:group_list', kwargs={'slug': 'the_group'}) + '?page=2'
         )
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE
+        )
 
     def test_first_page_group_list_contains_ten_records(self):
         """"group_list содержит 10 постов на первой странице"""
         response = self.client.get(reverse(
             'posts:profile', kwargs={'username': 'test_name_2'})
         )
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_FIRST_PAGE
+        )
 
     def test_second_page_group_list_contains_three_records(self):
         """"group_list содержит 3 поста на второй странице"""
         response = self.client.get(reverse(
             'posts:profile', kwargs={'username': 'test_name_2'}) + '?page=2'
         )
-        self.assertEqual(len(response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE)
+        self.assertEqual(len(
+            response.context['page_obj'].object_list), POSTS_ON_SECOND_PAGE
+        )

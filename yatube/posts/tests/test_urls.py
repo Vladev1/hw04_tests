@@ -6,7 +6,6 @@ from django.urls import reverse
 from ..models import Post, Group, User
 
 
-
 class StaticURLTests(TestCase):
     """Проверка доступности стартовой страницы"""
     def test_homepage(self):
@@ -37,13 +36,14 @@ class PostsURLTests(TestCase):
         cls.context_client = {
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:group_list',
-             kwargs={'slug': 'the_group'}): 'posts/group_list.html',
+                    kwargs={'slug': 'the_group'}): 'posts/group_list.html',
             reverse('posts:profile',
-             kwargs={'username': 'test_name_2'}): 'posts/profile.html',
+                    kwargs={'username': 'test_name_2'}): 'posts/profile.html',
             reverse('posts:post_detail',
-             kwargs={'post_id': '1'}): 'posts/post_detail.html',
+                    kwargs={'post_id': '1'}): 'posts/post_detail.html',
             reverse('posts:post_create'): 'posts/create_post.html',
         }
+
     def setUp(self):
         # Создаем неавторизованный клиент
         self.guest_client = Client()
@@ -71,7 +71,8 @@ class PostsURLTests(TestCase):
         пользователя на страницу логина.
         """
         response = self.guest_client.get('/create/', follow=True)
-        self.assertRedirects(response, reverse('users:login') + '?next=/create/')
+        self.assertRedirects(response,
+                             reverse('users:login') + '?next=/create/')
 
     def test_edit_url_redirect_anonymous_on_posts_login(self):
         """Страница по адресу /posts/1/edit/ перенаправит анонимного
@@ -79,8 +80,7 @@ class PostsURLTests(TestCase):
         """
         response = self.guest_client.get('/posts/1/edit/', follow=True)
         self.assertRedirects(response,
-         reverse('users:login') + '?next=/posts/1/edit/'
-        )
+                             reverse('users:login') + '?next=/posts/1/edit/')
 
     # Проверяем редиректы для аторизованного пользователя
     def test_edit_url_redirect_auth_not_author_on_posts_login(self):
@@ -89,12 +89,12 @@ class PostsURLTests(TestCase):
         """
         response = self.authorized_client.get('/create/', follow=True)
         self.assertRedirects(response, ('/create/'))
-    
+
     def test_edit(self):
         """Тест доступности редактирования Автору поста."""
         response = self.authorized_client_author.get('/posts/1/edit/')
         self.assertEqual(response.status_code, HTTPStatus.OK)
-    
+
     # Проверяем доступность приватных адресов залогиненной учеткой
     def test_pages_urls_for_auth_users(self):
         """Тест доступности страниц auth пользователям."""
@@ -121,7 +121,6 @@ class PostsURLTests(TestCase):
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_url_names = {
-            'posts/create_post.html': '/create/',
             'posts/create_post.html': '/posts/1/edit/',
         }
         for template, address in templates_url_names.items():
@@ -129,7 +128,8 @@ class PostsURLTests(TestCase):
                 response = self.authorized_client_author.get(address)
                 self.assertTemplateUsed(response, template)
 
-    # Проверяем доступность страницы редактирования поста из под другой учетной записи
+    # Проверяем доступность страницы редактирования поста
+    #  из под другой учетной записи
     def test_edit_url_redirect_auth_not_author_on_posts_login(self):
         """Страница по адресу /posts/1/edit/ перенаправит
         не автора поста на страницу поста.
@@ -147,8 +147,3 @@ class PostsURLTests(TestCase):
         """Тест доступности unexisting guest пользователям."""
         response = self.guest_client.get('/unexisting_page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-
-
-
-
-
